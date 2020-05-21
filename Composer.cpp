@@ -36,18 +36,18 @@ void compose(char* front, size_t f_width, size_t f_height, char* back, size_t b_
 	for (size_t y = 0; y < f_height; ++y){
 		for (size_t x = 0; x < f_width; x += 8){
 
-			__m256i bp   = _mm256_loadu_si256(reinterpret_cast<__m256i*>(back  + x * PIXEL_SIZE)); //vmovdqa
-			__m256i fp   = _mm256_loadu_si256(reinterpret_cast<__m256i*>(front + x * PIXEL_SIZE)); //vmocdqa
+			__m256i bp       = _mm256_loadu_si256(reinterpret_cast<__m256i*>(back  + x * PIXEL_SIZE)); //vmovdqa
+			__m256i fp       = _mm256_loadu_si256(reinterpret_cast<__m256i*>(front + x * PIXEL_SIZE)); //vmocdqa
 
-			__m256i bp_h =  _mm256_unpackhi_epi8(bp, zeroes);
-			__m256i bp_l =  _mm256_unpacklo_epi8(bp, zeroes);
+			__m256i bp_h     =  _mm256_unpackhi_epi8(bp, zeroes);
+			__m256i bp_l     =  _mm256_unpacklo_epi8(bp, zeroes);
 
-			__m256i fp_h =  _mm256_unpackhi_epi8(fp, zeroes);
-			__m256i fp_l =  _mm256_unpacklo_epi8(fp, zeroes);
+			__m256i fp_h     =  _mm256_unpackhi_epi8(fp, zeroes);
+			__m256i fp_l     =  _mm256_unpacklo_epi8(fp, zeroes);
 
 //Shuffle pixel to extract alpha
-			__m256i fpa_l = _mm256_shuffle_epi8(fp_l, alpha_mask);
-			__m256i fpa_h = _mm256_shuffle_epi8(fp_h, alpha_mask);
+			__m256i fpa_l    = _mm256_shuffle_epi8(fp_l, alpha_mask);
+			__m256i fpa_h    = _mm256_shuffle_epi8(fp_h, alpha_mask);
 
 //  RES = (F * α) + (B * (255 - α))
 //-----------------------------------
@@ -60,13 +60,14 @@ void compose(char* front, size_t f_width, size_t f_height, char* back, size_t b_
 			__m256i nfp_l    = _mm256_mullo_epi16(fp_l, fpa_l);
 
 //Division is replaced by shift for better performance 
-			__m256i res_h    = _mm256_srli_epi16(_mm256_add_epi16(nbp_h, nfp_h), 8);
-			__m256i res_l    = _mm256_srli_epi16(_mm256_add_epi16(nbp_l, nfp_l), 8);
+			__m256i res_h    = _mm256_shuffle_epi8(_mm256_srli_epi16(_mm256_add_epi16(nbp_h, nfp_h), 8), 
+							       extract_mask_h);
 
-			res_h = _mm256_shuffle_epi8(res_h, extract_mask_h);
-			res_l = _mm256_shuffle_epi8(res_l, extract_mask_l);
+			__m256i res_l    = _mm256_shuffle_epi8(_mm256_srli_epi16(_mm256_add_epi16(nbp_l, nfp_l), 8),
+							       extract_mask_l);
 
-			_mm256_storeu_si256(reinterpret_cast<__m256i*>(back + PIXEL_SIZE * x), _mm256_or_si256(res_l, res_h));
+			_mm256_storeu_si256(reinterpret_cast<__m256i*>(back + PIXEL_SIZE * x), 
+					    _mm256_or_si256(res_l, res_h));
 		}
 
 		front += 4 * f_width;
