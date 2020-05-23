@@ -15,7 +15,7 @@ Some fish!
 </details>
 
 Runing composer 500000 times with -O3.
-Baseline, s|AVX, s
+Baseline, s|AVX2, s
 ---|---
 26.24|5.80
 
